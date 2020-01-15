@@ -402,6 +402,17 @@ function getPoByPurchaseId(tabPurchaseId,tabPo){
   }
   return returnPo;
 }
+function getPoWithEmptyPr(tabPo){
+  var returnPo = [];
+  for(var indexPo = 0; indexPo < tabPo.length; indexPo++){
+     if(tabPo[indexPo]["requisition_id"] instanceof Array){
+       continue;
+     }else{
+       returnPo.push(tabPo[indexPo]);
+     }
+  }
+  return returnPo;
+}
 function getSpByStockPinckingId(tabStockPickingId,tabSp){
   var returnSp = [];
   for(var indexSpId = 0; indexSpId < tabStockPickingId.length; indexSpId++){
@@ -414,13 +425,28 @@ function getSpByStockPinckingId(tabStockPickingId,tabSp){
   return returnSp;
 }
 function joinPr_Po_Sp(tabPr,tabPo,tabSp){
-  for(var indexPo = 0; indexPo < tabPo.length; indexPo++){
+  var tabPrEmpty=[];
+    tabPrEmpty.id=0;
+    tabPrEmpty.company_id=[0, "###"];
+    tabPrEmpty.name=" ";
+    tabPrEmpty.x_studio_field_jOoPe=false;
+    tabPrEmpty.user_id=[0, " "];
+    tabPrEmpty.ordering_date=false;
+    tabPrEmpty.date_end=" ";
+    tabPrEmpty.schedule_date=" "; 
+    tabPrEmpty.origin=false;
+    tabPrEmpty.state=" ";
+    tabPrEmpty.x_studio_description=" "; 
+    tabPrEmpty.purchase_ids=[];
+  for (var indexPo = 0; indexPo < tabPo.length; indexPo++){
      tabPo[indexPo].Sp = getSpByStockPinckingId(tabPo[indexPo]["picking_ids"],tabSp);
-   }
-   for(var indexPr = 0; indexPr < tabPr.length; indexPr++){
+  }
+  for(var indexPr = 0; indexPr < tabPr.length; indexPr++){
      tabPr[indexPr].Po = getPoByPurchaseId(tabPr[indexPr]["purchase_ids"],tabPo);
-   }
-   return tabPr;
+  }
+  tabPr[tabPr.length] = tabPrEmpty;
+  tabPr[tabPr.length-1].Po = getPoWithEmptyPr(tabPo);
+  return tabPr;
 }
 function renderPo_Sp(line){
     var Po_Sp = [];
@@ -465,7 +491,8 @@ function renderPo_Sp(line){
     return Po_Sp;
 }
 function renderPr_Po_Sp(JSONPr,Po_Sp){
-    var tabRender = [];
+    
+  var tabRender = [];
     var Prfield = [];
     if(Po_Sp.length === 0){
       for(var key in JSONPr){
@@ -479,14 +506,22 @@ function renderPr_Po_Sp(JSONPr,Po_Sp){
       tabRender.push(Prfield);
       return tabRender;
     }else{
-      for(var indexPo_Sp = 0; indexPo_Sp < Po_Sp.length; indexPo_Sp++){
-        if(Prfield.length === 0){
+      var flag=0;
+      for(var indexPo_Sp = 0; indexPo_Sp < Po_Sp.length; indexPo_Sp++){ 
+        
+        if(Prfield.length === 0 || flag===1){
+            Prfield = []
             for(var key in JSONPr){
               if(key==="Po" || key==="id" || key==="purchase_ids")
                   continue;
               var value = JSONPr[key];
               if (value instanceof Array && value.length === 2 && typeof value[1] === "string")value = value[1];
               if(value===false)value=" ";
+              if(value==="###"){
+                value=Po_Sp[indexPo_Sp][12];
+                flag=1;
+              }
+                
               Prfield.push(value);
             }
         }
@@ -506,17 +541,20 @@ function plotData(JsonData){
   }
   return data;
 }
-
+function test(){
+  tabPo = custom_oe_browse("purchase.order","requisition_id name partner_id partner_ref x_studio_description date_approve date_planned user_id origin amount_untaxed amount_total currency_id state id picking_ids company_id","['|',['requisition_id','!=',false],'&',['requisition_id','=',false],"+filterDate()+"]","requisition_id",1800);
+  tabPo = custom_oe_browse("purchase.order","requisition_id name partner_id partner_ref x_studio_description date_approve date_planned user_id origin amount_untaxed amount_total currency_id state id picking_ids company_id","[]","requisition_id",1800);
+  tabPo = custom_oe_browse("purchase.order","requisition_id name partner_id partner_ref x_studio_description date_approve date_planned user_id origin amount_untaxed amount_total currency_id state id picking_ids company_id","[]","requisition_id",1800);
+}
 function getData(){
-tabPr = custom_oe_browse("purchase.requisition","company_id name x_studio_field_jOoPe  user_id ordering_date date_end schedule_date origin state x_studio_description purchase_ids","[]");
-//    tabPr = custom_oe_browse("purchase.requisition","company_id name x_studio_field_jOoPe  user_id ordering_date date_end schedule_date origin state x_studio_description purchase_ids","[['state','not in',['draft','cancel']],"+filterDate()+"]");
-    tabPo = custom_oe_browse("purchase.order","requisition_id name partner_id partner_ref x_studio_description date_approve date_planned user_id origin amount_untaxed amount_total currency_id state id picking_ids","[['requisition_id', '!=', 0]]");
-    tabSp = custom_oe_browse("stock.picking","purchase_id name partner_id write_uid scheduled_date date_done backorder_id state priority picking_type_id","[]")
-    JsonData = joinPr_Po_Sp(tabPr,tabPo,tabSp);
-//    Logger.log(tabPr);
-//    Logger.log(tabPo);
-//    Logger.log(tabSp);  
+    tabPr = custom_oe_browse("purchase.requisition","company_id name x_studio_field_jOoPe  user_id ordering_date date_end schedule_date origin state x_studio_description purchase_ids","[['state','not in',['draft','cancel']],"+filterDate()+"]","company_id",1800);
+//  tabPr = custom_oe_browse("purchase.requisition","company_id name x_studio_field_jOoPe  user_id ordering_date date_end schedule_date origin state x_studio_description purchase_ids","[['state','not in',['draft','cancel']],"+filterDate()+"]");
+//    tabPo = custom_oe_browse("purchase.order","requisition_id name partner_id partner_ref x_studio_description date_approve date_planned user_id origin amount_untaxed amount_total currency_id state id picking_ids",getDomain(tabPr,"purchase_ids"),"requisition_id",1800);
+    tabPo = custom_oe_browse("purchase.order","requisition_id name partner_id partner_ref x_studio_description date_approve date_planned user_id origin amount_untaxed amount_total currency_id state id picking_ids company_id","['|',['requisition_id','!=',false],'&',['requisition_id','=',false],"+filterDate()+"]","requisition_id",1800);
+    tabSp = custom_oe_browse("stock.picking","purchase_id name partner_id write_uid scheduled_date date_done backorder_id state priority picking_type_id",getDomain(tabPo,"picking_ids"),"purchase_id",1800)
+    JsonData = joinPr_Po_Sp(tabPr,tabPo,tabSp);  
     return plotData(JsonData);
+  
 }
 
 function cleanData(){
@@ -568,10 +606,32 @@ function custom_oe_browse(model, fields, domain, sort, limit){
     domain = domain.replace(/\'/g, '"');
   }
   domain = JSON.parse(domain);
-  
+    
   var records = seach_read(model, fields, domain, sort, limit);
-//  return parse_records_for_ss(records, fields);
-  Logger.log(records);
-  Logger.log("éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé");
+//return parse_records_for_ss(records, fields);
+//Logger.log(records);
   return records;
 }
+function getDomain(tab,key){
+//['|','|',['id','=',89],['id','=',88],['id','=',87]]
+  var builder="[";
+  var position=0;
+  for(var indexPoId = 0; indexPoId < tab.length; indexPoId++){
+    for(var indexData = 0; indexData < tab[indexPoId][key].length; indexData++){
+      if(indexPoId+1==tab.length && indexData+1==tab[indexPoId][key].length)
+        break;
+      builder=builder+"\'|\',";
+    }
+  }
+  for(var indexPoId = 0; indexPoId < tab.length; indexPoId++){
+    for(var indexId = 0; indexId < tab[indexPoId][key].length; indexId++){
+      if(indexPoId+1==tab.length && indexId+1==tab[indexPoId][key].length){
+        builder=builder+"['id','=',"+tab[indexPoId][key][indexId]+"]]";
+      }else{
+        builder=builder+"['id','=',"+tab[indexPoId][key][indexId]+"],";
+      }
+    }
+  }
+  return builder;
+}
+
